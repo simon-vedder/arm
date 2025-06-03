@@ -1,11 +1,13 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
-  "metadata": {
-    "_generator": {
-      "name": "bicep",
-      "version": "0.36.1.42791",
-      "templateHash": "14745587127785928355"
+  "metadata": {},
+  "variables": {
+    "defaultTags": {
+      "Author": "Simon Vedder",
+      "Contact": "info@simonvedder.com",
+      "Project": "DeallocateStoppedVM",
+      "ManagedBy": "ARM"
     }
   },
   "resources": [
@@ -13,6 +15,7 @@
       "type": "Microsoft.Web/connections",
       "apiVersion": "2016-06-01",
       "name": "azurerm_connection",
+      "tags": "[variables('defaultTags')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "displayName": "azurerm_connection",
@@ -25,6 +28,7 @@
       "type": "Microsoft.Insights/actionGroups",
       "apiVersion": "2023-01-01",
       "name": "TriggerLogicAppViaHealthAlert",
+      "tags": "[variables('defaultTags')]",
       "location": "global",
       "properties": {
         "groupShortName": "HealthAlert",
@@ -48,6 +52,7 @@
       "type": "Microsoft.Insights/activityLogAlerts",
       "apiVersion": "2020-10-01",
       "name": "TriggerLogicAppViaHealthAlert",
+      "tags": "[variables('defaultTags')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "enabled": true,
@@ -89,6 +94,7 @@
       "type": "Microsoft.Logic/workflows",
       "apiVersion": "2019-05-01",
       "name": "DeallocateStoppedVM",
+      "tags": "[variables('defaultTags')]",
       "location": "[resourceGroup().location]",
       "identity": {
         "type": "SystemAssigned"
