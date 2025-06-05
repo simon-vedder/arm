@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure VM Bestellung</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for Inter font and general body styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top to prevent form being too high */
+            min-height: 100vh;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 2.5rem;
+            border-radius: 1rem; /* More rounded corners */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Softer shadow */
+            width: 100%;
+            max-width: 600px; /* Max width for desktop */
+        }
+        /* Style for disabled inputs */
+        input:disabled, select:disabled {
+            background-color: #e5e7eb; /* Lighter gray for disabled */
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        /* Message box styling */
+        .message-box {
+            padding: 1rem;
+            margin-top: 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            text-align: center;
+        }
+        .message-box.success {
+            background-color: #d1fae5; /* Light green */
+            color: #065f46; /* Dark green text */
+        }
+        .message-box.error {
+            background-color: #fee2e2; /* Light red */
+            color: #991b1b; /* Dark red text */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Azure VM Bestellung</h2>
+        <form id="vmOrderForm" onsubmit="event.preventDefault(); submitForm();" class="space-y-5">
+            <div>
+                <label for="upn" class="block text-sm font-medium text-gray-700 mb-1">Benutzer UPN:</label>
+                <input type="email" id="upn" name="upn" required
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                       placeholder="name@example.com">
+            </div>
+
+            <div>
+                <label for="vm_type" class="block text-sm font-medium text-gray-700 mb-1">VM-Typ:</label>
+                <select id="vm_type" name="vm_type" onchange="updateFormFields()"
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <option value="standard">Standard VM</option>
+                    <option value="avd">AVD</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="vm_size" class="block text-sm font-medium text-gray-700 mb-1">VM-Größe:</label>
+                <select id="vm_size" name="vm_size"
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <option value="Standard_D2s_v3">2 vCPUs, 8 GB RAM (Standard_D2s_v3)</option>
+                    <option value="Standard_D4s_v3">4 vCPUs, 16 GB RAM (Standard_D4s_v3)</option>
+                    <option value="Standard_D8s_v3">8 vCPUs, 32 GB RAM (Standard_D8s_v3)</option>
+                    <option value="Standard_D16s_v3">16 vCPUs, 64 GB RAM (Standard_D16s_v3)</option>
+                </select>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <label for="public_ip" class="flex items-center cursor-pointer">
+                    <input type="checkbox" id="public_ip" name="public_ip"
+                           class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="ml-2 text-sm text-gray-700">Öffentliche IP-Adresse</span>
+                </label>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <label for="ad_join" class="flex items-center cursor-pointer">
+                    <input type="checkbox" id="ad_join" name="ad_join"
+                           class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="ml-2 text-sm text-gray-700">On-Prem AD Join</span>
+                </label>
+                <label for="entra_ext" class="flex items-center cursor-pointer">
+                    <input type="checkbox" id="entra_ext" name="entra_ext"
+                           class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="ml-2 text-sm text-gray-700">Entra Login Erweiterung</span>
+                </label>
+            </div>
+
+            <div>
+                <label for="os" class="block text-sm font-medium text-gray-700 mb-1">Betriebssystem:</label>
+                <select id="os" name="os" onchange="updateFormFields()"
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
+
+            <div id="loadBalancerTypeField" class="hidden">
+                <label for="load_balancer_type" class="block text-sm font-medium text-gray-700 mb-1">Lastverteilungstyp (für AVD Multi-Session):</label>
+                <select id="load_balancer_type" name="load_balancer_type"
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <option value="BreadthFirst">BreadthFirst</option>
+                    <option value="DepthFirst">DepthFirst</option>
+                </select>
+            </div>
+
+            <div id="applicationField" class="hidden">
+                <label for="application" class="block text-sm font-medium text-gray-700 mb-1">Applikation (für Standard VM):</label>
+                <input type="text" id="application" name="application"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                       placeholder="z.B. Webserver, Datenbank, Entwicklungsumgebung">
+            </div>
+
+            <button type="submit"
+                    class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                Bestellen
+            </button>
+        </form>
+
+        <!-- Message Box for success/error messages -->
+        <div id="messageBox" class="message-box hidden"></div>
+    </div>
+
+    <script>
+        // Define all possible OS options with their values and display names
+        const osOptions = {
+            windows11: { displayName: 'Windows 11', type: ['standard', 'avd'] },
+            windows11multisession: { displayName: 'Windows 11 Multi-Session', type: ['avd'] },
+            windowsserver2025: { displayName: 'Windows Server 2025', type: ['standard'] },
+            ubuntu24: { displayName: 'Ubuntu 24 LTS', type: ['standard'] }
+        };
+
+        // Function to update the state of Public IP, OS dropdown, Application and Load Balancer fields based on VM Type and OS
+        function updateFormFields() {
+            const vmTypeSelect = document.getElementById('vm_type');
+            const publicIpCheckbox = document.getElementById('public_ip');
+            const osSelect = document.getElementById('os');
+            const applicationField = document.getElementById('applicationField');
+            const loadBalancerTypeField = document.getElementById('loadBalancerTypeField');
+            const selectedVmType = vmTypeSelect.value;
+            const selectedOs = osSelect.value; // Get selected OS
+
+            // --- Public IP Logic ---
+            if (selectedVmType === 'avd') {
+                publicIpCheckbox.disabled = true;
+                publicIpCheckbox.checked = false; // Uncheck if AVD is selected
+            } else {
+                publicIpCheckbox.disabled = false;
+            }
+
+            // --- OS Filtering Logic ---
+            // Store current selected OS before clearing options
+            const currentOsValue = osSelect.value;
+            osSelect.innerHTML = ''; // Clear existing options
+
+            let defaultOsSelected = false;
+            for (const value in osOptions) {
+                if (osOptions[value].type.includes(selectedVmType)) {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = osOptions[value].displayName;
+                    osSelect.appendChild(option);
+                    // Try to re-select the previously chosen OS if it's still available
+                    if (value === currentOsValue) {
+                        option.selected = true;
+                        defaultOsSelected = true;
+                    }
+                    if (!defaultOsSelected && osSelect.options.length === 1) { // Select the first available option if none was selected
+                        osSelect.options[0].selected = true;
+                        defaultOsSelected = true;
+                    }
+                }
+            }
+            // If the previously selected OS is no longer available, update to the new first option
+            if (!defaultOsSelected && osSelect.options.length > 0) {
+                osSelect.options[0].selected = true;
+            }
+
+
+            // --- Application Field Logic ---
+            if (selectedVmType === 'standard') {
+                applicationField.classList.remove('hidden');
+            } else {
+                applicationField.classList.add('hidden');
+                document.getElementById('application').value = ''; // Clear value if hidden
+            }
+
+            // --- Load Balancer Type Field Logic ---
+            if (selectedOs === 'windows11multisession') {
+                loadBalancerTypeField.classList.remove('hidden');
+            } else {
+                loadBalancerTypeField.classList.add('hidden');
+                document.getElementById('load_balancer_type').value = 'BreadthFirst'; // Reset to default
+            }
+        }
+
+        // Function to display messages in the message box
+        function displayMessage(message, type) {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = message;
+            messageBox.className = `message-box ${type}`; // Apply success or error class
+            messageBox.classList.remove('hidden'); // Make it visible
+
+            // Hide the message after 5 seconds
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Function to submit the form data
+        async function submitForm() {
+            const vmType = document.getElementById('vm_type').value;
+            const data = {
+                upn: document.getElementById('upn').value,
+                vmType: vmType, // Send the selected VM type
+                vmSize: document.getElementById('vm_size').value,
+                avd: (vmType === 'avd'), // Set 'avd' boolean based on vmType
+                publicIp: document.getElementById('public_ip').checked,
+                adJoin: document.getElementById('ad_join').checked,
+                entraExt: document.getElementById('entra_ext').checked,
+                os: document.getElementById('os').value
+            };
+
+            // Add application field only if VM type is standard
+            if (vmType === 'standard') {
+                data.application = document.getElementById('application').value;
+            } else {
+                data.application = ''; // Ensure it's empty if AVD
+            }
+
+            // Add loadBalancerType only if OS is Windows 11 Multi-Session
+            if (data.os === 'windows11multisession') {
+                data.loadBalancerType = document.getElementById('load_balancer_type').value;
+            } else {
+                data.loadBalancerType = ''; // Ensure it's empty if not Multi-Session AVD
+            }
+
+
+            // Placeholder for your Azure Function (HTTP Trigger) URL.
+            // This Function will receive the data and securely write it to the Azure Queue.
+            const azureFunctionProxyUrl = 'https://<IHRE-AZURE-FUNCTION-PROXY-URL-HIER-EINFÜGEN>';
+
+            try {
+                const response = await fetch(azureFunctionProxyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    displayMessage("Bestellung erfolgreich abgesendet.", "success");
+                    // Optionally reset the form after successful submission
+                    document.getElementById('vmOrderForm').reset();
+                    updateFormFields(); // Reset form fields to initial state
+                } else {
+                    const errorText = await response.text(); // Get error message from response
+                    displayMessage(`Fehler beim Absenden: ${response.status} - ${errorText}`, "error");
+                }
+            } catch (error) {
+                console.error("Fehler beim Senden der Anfrage:", error);
+                displayMessage(`Netzwerkfehler oder unerwartetes Problem: ${error.message}`, "error");
+            }
+        }
+
+        // Call updateFormFields on page load to set initial state
+        window.onload = updateFormFields;
+    </script>
+</body>
+</html>
