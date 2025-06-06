@@ -73,7 +73,7 @@
         },
         "networkSecurityGroupEnabled": {
             "type": "bool",
-            "defaultValue": false,
+            "defaultValue": true,
             "metadata": {
                 "description": "Gibt an, ob eine Netzwerksicherheitsgruppe (NSG) erstellt und zugewiesen werden soll."
             }
@@ -113,11 +113,39 @@
                 "description": "Das Passwort des Domänenkontos. Erforderlich, wenn adJoin true ist."
             }
         },
+        "ouPath": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Der OU Path in dem sich die viruelle Maschine befinden soll"
+            }
+        },
         "entraExt": {
             "type": "bool",
             "defaultValue": false,
             "metadata": {
                 "description": "Gibt an, ob die Azure AD Join (Entra ID) Extension installiert werden soll."
+            }
+        },
+        "avdHostPoolName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Der Name des AVD Host Pools, dem die VM beitreten soll. Erforderlich, wenn avdExt true ist."
+            }
+        },
+        "avdRegistrationToken": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Das Registrierungstoken für den AVD Host Pool. Erforderlich, wenn avdExt true ist."
+            }
+        },
+        "avdExt": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Gibt an, ob die AVD (Azure Virtual Desktop) Agent Extension installiert werden soll."
             }
         }
     },
@@ -145,38 +173,20 @@
     },
     "resources": [
         {
-            "type": "Microsoft.Network/virtualNetworks",
-            "apiVersion": "2021-02-01",
-            "name": "[parameters('vnetName')]",
-            "location": "[parameters('location')]",
-            "properties": {
-                "addressSpace": {
-                    "addressPrefixes": [
-                        "10.0.0.0/16"
-                    ]
-                },
-                "subnets": [
-                    {
-                        "name": "[parameters('subnetName')]",
-                        "properties": {
-                            "addressPrefix": "10.0.0.0/24"
-                        }
-                    }
-                ]
-            }
-        },
-        {
             "condition": "[parameters('publicIpEnabled')]",
             "type": "Microsoft.Network/publicIPAddresses",
             "apiVersion": "2021-02-01",
             "name": "[variables('publicIpName')]",
             "location": "[parameters('location')]",
+            "sku": {
+                "tier": "Regional",
+                "name": "Standard"
+            },
             "properties": {
-                "publicIPAllocationMethod": "Dynamic"
+                "publicIPAllocationMethod": "Static"
             }
         },
         {
-            "condition": "[parameters('networkSecurityGroupEnabled')]",
             "type": "Microsoft.Network/networkSecurityGroups",
             "apiVersion": "2021-02-01",
             "name": "[variables('networkSecurityGroupName')]",
@@ -242,7 +252,7 @@
                 "osProfile": {
                     "computerName": "[parameters('vmName')]",
                     "adminUsername": "[parameters('adminUsername')]",
-                    "adminPassword": "[parameters('adminPassword')]" // Immer ein Passwort für Windows
+                    "adminPassword": "[parameters('adminPassword')]"
                 },
                 "storageProfile": {
                     "imageReference": {
@@ -283,7 +293,7 @@
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                     "DomainName": "[parameters('domainName')]",
-                    "OUPath": "", // Optional: Organisationseinheit (OU)
+                    "OUPath": "[parameters('ouPath')]", // Optional: Organisationseinheit (OU)
                     "User": "[parameters('domainUsername')]",
                     "Restart": "true",
                     "Options": "1" // 1 = force, 0 = default
@@ -312,6 +322,28 @@
                 },
                 "protectedSettings": {
                     // Keine geschützten Einstellungen für AADLoginForWindows standardmäßig erforderlich
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+            ]
+        },
+        {
+            "condition": "[parameters('avdExt')]",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2021-07-01",
+            "name": "[concat(parameters('vmName'), '/Microsoft.RDInfra.RDAgent')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "publisher": "Microsoft.RDInfra",
+                "type": "RDAgentBootloader",
+                "typeHandlerVersion": "1.0",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "hostPoolName": "[parameters('avdHostPoolName')]"
+                },
+                "protectedSettings": {
+                    "registrationToken": "[parameters('avdRegistrationToken')]"
                 }
             },
             "dependsOn": [
