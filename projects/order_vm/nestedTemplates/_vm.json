@@ -51,7 +51,7 @@
         },
         "vnetName": {
             "type": "string",
-            "defaultValue": "myVnet",
+            "defaultValue": "vnet1",
             "metadata": {
                 "description": "Der Name des virtuellen Netzwerks. Wird erstellt, wenn es nicht existiert."
             }
@@ -114,7 +114,7 @@
             }
         },
         "ouPath": {
-            "type": "securestring",
+            "type": "string",
             "defaultValue": "",
             "metadata": {
                 "description": "Der OU Path in dem sich die viruelle Maschine befinden soll"
@@ -250,6 +250,9 @@
             "apiVersion": "2021-07-01",
             "name": "[parameters('vmName')]",
             "location": "[parameters('location')]",
+            "identity": {
+                "type": "SystemAssigned"
+            },
             "properties": {
                 "hardwareProfile": {
                     "vmSize": "[parameters('vmSize')]"
@@ -297,11 +300,11 @@
                 "typeHandlerVersion": "1.3",
                 "autoUpgradeMinorVersion": true,
                 "settings": {
-                    "DomainName": "[parameters('domainName')]",
-                    "OUPath": "[parameters('ouPath')]", // Optional: Organisationseinheit (OU)
-                    "User": "[parameters('domainUsername')]",
-                    "Restart": "true",
-                    "Options": "1" // 1 = force, 0 = default
+                    "Name": "[parameters('domainName')]",
+                    "OUPath": "[parameters('ouPath')]", 
+                    "User": "[format('{0}\\{1}', parameters('domainName'), parameters('domainUsername'))]",
+                    "Restart": true,
+                    "Options": "3"
                 },
                 "protectedSettings": {
                     "Password": "[parameters('domainPassword')]"
@@ -314,41 +317,41 @@
         {
             "condition": "[parameters('entraExt')]",
             "type": "Microsoft.Compute/virtualMachines/extensions",
-            "apiVersion": "2021-07-01",
+            "apiVersion": "2015-06-15",
             "name": "[concat(parameters('vmName'), '/AADLoginForWindows')]",
             "location": "[parameters('location')]",
             "properties": {
                 "publisher": "Microsoft.Azure.ActiveDirectory",
                 "type": "AADLoginForWindows",
                 "typeHandlerVersion": "1.0",
-                "autoUpgradeMinorVersion": true,
-                "settings": {
-                    // Optional: Zusätzliche Einstellungen für die Azure AD Login Extension
-                },
-                "protectedSettings": {
-                    // Keine geschützten Einstellungen für AADLoginForWindows standardmäßig erforderlich
-                }
+                "autoUpgradeMinorVersion": true
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+
             ]
         },
         {
             "condition": "[parameters('avdExt')]",
             "type": "Microsoft.Compute/virtualMachines/extensions",
-            "apiVersion": "2021-07-01",
-            "name": "[concat(parameters('vmName'), '/Microsoft.RDInfra.RDAgent')]",
+            "apiVersion": "2015-06-15",
+            "name": "[concat(parameters('vmName'), '/AddSessionHost')]",
             "location": "[parameters('location')]",
-            "properties": {
-                "publisher": "Microsoft.RDInfra",
-                "type": "RDAgentBootloader",
-                "typeHandlerVersion": "1.0",
-                "autoUpgradeMinorVersion": true,
-                "settings": {
-                    "hostPoolName": "[parameters('avdHostPoolName')]"
-                },
-                "protectedSettings": {
-                    "registrationToken": "[parameters('avdRegistrationToken')]"
+             "properties": {
+              "publisher": "Microsoft.Powershell",
+              "type": "DSC",
+              "typeHandlerVersion": "2.73",
+              "autoUpgradeMinorVersion": true,
+              "settings": {
+                "modulesUrl": "https://raw.githubusercontent.com/Azure/RDS-Templates/master/ARM-wvd-templates/DSC/Configuration.zip",
+                "configurationFunction": "Configuration.ps1\\AddSessionHost",
+                    "properties": {
+                    "hostPoolName": "[parameters('avdHostPoolName')]",
+                    "registrationInfoToken": "[parameters('avdRegistrationToken')]",
+                    "aadJoin": false,
+					"UseAgentDownloadEndpoint": true,
+                    "sessionHostConfigurationLastUpdateTime": ""
+                    }
                 }
             },
             "dependsOn": [
