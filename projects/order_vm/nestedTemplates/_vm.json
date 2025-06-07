@@ -158,18 +158,23 @@
         "networkSecurityGroupId": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]",
 
         // Image-Referenzen basierend auf dem 'os'-Parameter (nur Windows)
-        "imagePublisher": "[
-            if(equals(parameters('os'), 'windows11'), 'MicrosoftWindowsDesktop',
-            if(equals(parameters('os'), 'windows2022'), 'MicrosoftWindowsServer',
-            if(equals(parameters('os'), 'windows2025'), 'MicrosoftWindowsServer', '')))]",
-        "imageOffer": "[
-            if(equals(parameters('os'), 'windows11'), 'windows-11',
-            if(equals(parameters('os'), 'windows2022'), 'WindowsServer',
-            if(equals(parameters('os'), 'windows2025'), 'WindowsServer', '')))]",
-        "imageSku": "[
-            if(equals(parameters('os'), 'windows11'), 'win11-23h2-pro',
-            if(equals(parameters('os'), 'windows2022'), '2022-datacenter-azure-edition',
-            if(equals(parameters('os'), 'windows2025'), '2025-datacenter-azure-edition', '')))]" // Annahme für 2025
+         "imagePublisher": {
+        "windows11": "MicrosoftWindowsDesktop",
+        "windows2022": "MicrosoftWindowsServer",
+        "windows2025": "MicrosoftWindowsServer"
+        },
+        // Definieren von Mappings für imageOffer
+        "imageOffer": {
+        "windows11": "windows-11",
+        "windows2022": "WindowsServer",
+        "windows2025": "WindowsServer"
+        },
+        // Definieren von Mappings für imageSku
+        "imageSku": {
+        "windows11": "win11-23h2-pro",
+        "windows2022": "2022-datacenter-azure-edition",
+        "windows2025": "2025-datacenter-azure-edition"
+        }
     },
     "resources": [
         {
@@ -235,7 +240,7 @@
                 }
             },
             "dependsOn": [
-                "[variables('virtualNetworkId')]",
+                //"[variables('virtualNetworkId')]",
                 "[if(parameters('publicIpEnabled'), variables('publicIpId'), json('null'))]",
                 "[if(parameters('networkSecurityGroupEnabled'), variables('networkSecurityGroupId'), json('null'))]"
             ]
@@ -256,11 +261,11 @@
                 },
                 "storageProfile": {
                     "imageReference": {
-                        "publisher": "[variables('imagePublisher')]",
-                        "offer": "[variables('imageOffer')]",
-                        "sku": "[variables('imageSku')]",
-                        "version": "latest"
-                    },
+                    "publisher": "[variables('imagePublisher')[parameters('os')]]",
+                    "offer": "[variables('imageOffer')[parameters('os')]]",
+                    "sku": "[variables('imageSku')[parameters('os')]]",
+                    "version": "latest"
+                },
                     "osDisk": {
                         "createOption": "FromImage",
                         "managedDisk": {
