@@ -16,27 +16,6 @@
         "description": "Name of key vault"
       }
     },
-    "vnetName": {
-      "type": "string",
-      "defaultValue": "vnet1",
-      "metadata": {
-        "description": "Name of virtual network"
-      }
-    },
-    "subnetName": {
-      "type": "string",
-      "defaultValue": "default",
-      "metadata": {
-        "description": "Name of subnet"
-      }
-    },
-    "hostPoolName": {
-      "type": "string",
-      "defaultValue": "personal-hp",
-      "metadata": {
-        "description": "Name of avd personal hostpool"
-      }
-    },
     "VmAdminPassword": {
       "type": "securestring",
       "metadata": {
@@ -80,7 +59,16 @@
           "name": "standard"
         },
         "tenantId": "[subscription().tenantId]",
-        "accessPolicies": []
+        "enabledForTemplateDeployment":true,
+        "enableRbacAuthorization": true,
+        "networkAcls": {
+            "value": {
+                "defaultAction": "allow",
+                "bypass": "AzureServices",
+                "ipRules": [],
+                "virtualNetworkRules": []
+            }
+        }
       }
     },
     {
@@ -113,37 +101,6 @@
             "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
         ]
 
-    },
-    {
-      "type": "Microsoft.Network/virtualNetworks",
-      "apiVersion": "2022-07-01",
-      "name": "[parameters('vnetName')]",
-      "location": "[resourceGroup().location]",
-      "properties": {
-        "addressSpace": {
-          "addressPrefixes": ["10.0.0.0/16"]
-        },
-        "subnets": [
-          {
-            "name": "[parameters('subnetName')]",
-            "properties": {
-              "addressPrefix": "10.0.1.0/24"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "type": "Microsoft.DesktopVirtualization/hostpools",
-      "apiVersion": "2024-04-03",
-      "name": "[parameters('hostPoolName')]",
-      "location": "[resourceGroup().location]",
-      "properties": {
-        "hostPoolType": "Personal",
-        "loadBalancerType": "DepthFirst",
-        "preferredAppGroupType": "Desktop",
-        "personalDesktopAssignmentType": "Automatic"
-      }
     }
   ]
 }
