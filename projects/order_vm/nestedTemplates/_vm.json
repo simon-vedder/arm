@@ -53,7 +53,7 @@
             "type": "string",
             "defaultValue": "vnet1",
             "metadata": {
-                "description": "Der Name des virtuellen Netzwerks. Wird erstellt, wenn es nicht existiert."
+                "description": "Der Name des virtuellen Netzwerks."
             }
         },
         "subnetName": {
