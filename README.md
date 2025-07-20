@@ -22,8 +22,9 @@ arm/
 ## 🚀 How to Use
 
 You can deploy any ARM template using the Azure CLI:
-
+```
 az deployment group create \
   --resource-group <your-rg> \
   --template-file ./path/to/template.json \
   --parameters ./path/to/parameters.json
+  ```
