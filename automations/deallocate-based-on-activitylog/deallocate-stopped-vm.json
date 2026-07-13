@@ -19,6 +19,7 @@
       "location": "[resourceGroup().location]",
       "properties": {
         "displayName": "azurerm_connection",
+        "parameterValueType": "Alternative",
         "api": {
           "id": "[format('{0}/providers/Microsoft.Web/locations/{1}/managedApis/azurevm', subscription().id, resourceGroup().location)]"
         }
@@ -362,9 +363,9 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "name": "[guid(subscription().id, '9980e02c-c2be-4d73-94e8-173b1dc7cf3c')]",
+              "name": "[guid(subscription().id, '40c5ff49-9181-41f8-ae61-143b0e78555e')]",
               "properties": {
-                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '9980e02c-c2be-4d73-94e8-173b1dc7cf3c')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '40c5ff49-9181-41f8-ae61-143b0e78555e')]",
                 "principalId": "[parameters('logicAppIdentity')]",
                 "principalType": "ServicePrincipal"
               }
