@@ -1,7 +1,13 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
-  "metadata": {},
+  "contentVersion": "1.1.0.0",
+  "metadata": {
+    "description": "Deallocates a VM that was shut down from inside the guest. An activity-log alert on Resource Health events (cause UserInitiated) calls a Logic App, which checks the event for the guest-shutdown wording and deallocates the machine as its managed identity. The identity holds Desktop Virtualization Power On Off Contributor at the subscription. To deploy: Contributor on the resource group, User Access Administrator or Owner on the subscription.",
+    "changelog": {
+      "1.1.0.0": "Alert rule filters on properties.cause; action group calls the trigger's URL. Verified end to end 2026-09-12.",
+      "1.0.0.0": "Initial release, 2025-06-02."
+    }
+  },
   "variables": {
     "defaultTags": {
       "Author": "Simon Vedder",
@@ -37,7 +43,7 @@
         "webhookReceivers": [
           {
             "name": "TriggerLogicApp",
-            "serviceUri": "[listCallbackUrl(resourceId('Microsoft.Logic/workflows', 'DeallocateStoppedVM'), '2019-05-01').value]",
+            "serviceUri": "[listCallbackUrl(resourceId('Microsoft.Logic/workflows/triggers', 'DeallocateStoppedVM', 'When_a_HTTP_request_is_received'), '2019-05-01').value]",
             "useCommonAlertSchema": true
           }
         ]
@@ -71,7 +77,7 @@
               "equals": "Microsoft.Compute/virtualMachines"
             },
             {
-              "field": "resourceHealthStatus",
+              "field": "properties.cause",
               "equals": "UserInitiated"
             }
           ]
